@@ -171,8 +171,9 @@ class Procurement(object):
                 # Approve the entitlement and wait for another message for when
                 # it becomes active before setting up the service for the
                 # customer and updating our records.
-                self.approve_entitlement(entitlement_id)
-                return True
+                # self.approve_entitlement(entitlement_id)
+                # return True
+                return False
 
         elif event_type == 'ENTITLEMENT_ACTIVE':
             if state == 'ENTITLEMENT_ACTIVE':
@@ -235,43 +236,46 @@ def main(argv):
     procurement = Procurement(database)
 
     # Get the subscription object in order to perform actions on it.
-    subscriber = pubsub_v1.SubscriberClient()
-    subscription_path = subscriber.subscription_path(PROJECT_ID,
-                                                     PUBSUB_SUBSCRIPTION)
+    # subscriber = pubsub_v1.SubscriberClient()
+    # subscription_path = subscriber.subscription_path(PROJECT_ID,
+    #                                                  PUBSUB_SUBSCRIPTION)
 
-    def callback(message):
-        """Callback for handling Cloud Pub/Sub messages."""
-        payload = json.loads(message.data)
+    message = {'entitlement': {'id': 'b8f9a7f2-be18-4462-a7cc-5605b1c21301',
+                               'updateTime': '2023-06-29T13:26:24.154975Z'},
+               'eventId': 'CREATE_ENTITLEMENT-c96e96b8-422b-499d-94ec-f153b56f61df',
+               'eventType': 'ENTITLEMENT_CREATION_REQUESTED',
+               'providerId': 'DEMO-opsmx-public'}
+    payload = json.loads(message.data)
 
-        print('Received message:')
-        pprint.pprint(payload)
-        print()
+    print('Received message:')
+    pprint.pprint(payload)
+    print()
 
-        ack = False
-        if 'entitlement' in payload:
-            ack = procurement.handle_entitlement_message(payload['entitlement'],
-                                                         payload['eventType'])
-        elif 'account' in payload:
-            ack = procurement.handle_account_message(payload['account'])
-        else:
-            # If there's no account or entitlement, then just ack and ignore the
-            # message. This should never happen.
-            ack = True
+    ack = False
+    if 'entitlement' in payload:
+        ack = procurement.handle_entitlement_message(payload['entitlement'],
+                                                     payload['eventType'])
+    elif 'account' in payload:
+        ack = procurement.handle_account_message(payload['account'])
+    else:
+        # If there's no account or entitlement, then just ack and ignore the
+        # message. This should never happen.
+        ack = True
 
-        if ack:
-            message.ack()
+    if ack:
+        message.ack()
 
-    subscription = subscriber.subscribe(subscription_path, callback=callback)
+    # subscription = subscriber.subscribe(subscription_path, callback=callback)
 
-    print('Listening for messages on {}'.format(subscription_path))
-    print('Exit with Ctrl-\\')
+    # print('Listening for messages on {}'.format(subscription_path))
+    # print('Exit with Ctrl-\\')
 
-    while True:
-        try:
-            subscription.result()
-        except Exception as exception:
-            print('Listening for messages on {} threw an Exception: {}.'.format(
-                subscription_path, exception))
+    # while True:
+    #     try:
+    #         subscription.result()
+    #     except Exception as exception:
+    #         print('Listening for messages on {} threw an Exception: {}.'.format(
+    #             subscription_path, exception))
 
 
 if __name__ == '__main__':
